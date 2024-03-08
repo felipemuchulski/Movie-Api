@@ -1,12 +1,16 @@
 //importando express
 const express = require('express');
 const app = express();
-
 app.use(express.json());
 
 //importando AppError
 const AppError = require('./utils/AppError');
 
+
+//importando migrationsRun:
+const migrationsRun = require("./database/postgresql/migrations/index");
+
+migrationsRun();
 
 //enviando erro e resposta
 app.use((error, request, response, message) => {
