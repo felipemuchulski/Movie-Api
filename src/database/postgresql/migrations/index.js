@@ -13,7 +13,7 @@ async function migrationsRun() {
         await db.query(schemas);
         console.log('Migrations executadas com sucesso.');
     } catch (error) {
-        console.log(error)
+        
         console.log('Já existe essa tabela');
     }
 }
