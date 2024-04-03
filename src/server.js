@@ -3,6 +3,8 @@ const express = require('express');
 
 const app = express();
 app.use(express.json());
+
+const routes = require("./routes");
 //importando AppError
 const AppError = require('./utils/AppError');
 
