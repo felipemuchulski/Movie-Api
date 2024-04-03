@@ -77,3 +77,5 @@ class UserController {
     } catch (error) {}
   }
 }
+
+module.exports = UserController;
