@@ -16,6 +16,7 @@ class UserController {
       }
 
       const hashedPassword = await hash(password, 8);
+      
       await connectionString.query(
         "INSERT INTO users (name_user, password_user, email_user) VALUES ($1, $2, $3)",
         [name, hashedPassword, email]
@@ -28,45 +29,41 @@ class UserController {
   }
 
   async update(request, response) {
-    const { name , email, password, old_password } = request.body;
+    const { name, email, password, old_password } = request.body;
     const { id } = request.params;
-
+  
     try {
       const user = await connectionString.query(
         "SELECT * FROM users WHERE id_user = $1",
         [id]
       );
       if (user.rows.length === 0) {
-        throw new AppError("Usuario nao encontrado");
+        throw new AppError("Usuário não encontrado");
       }
-
-      const userWithUpdatedEmail = await connectionString.query(
-        "SELECT * FROM users WHERE email_user = $1",
-        [email]
-      );
-      if (
-        userWithUpdatedEmail.rows.length > 0 &&
-        userWithUpdatedEmail.rows[0].id_user != user.rows[0].id_user
-      ) {
-        throw new AppError("Este e-mail ja esta em uso");
-      }
-
-      user.name = name ?? user.name;
-      user.email = email ?? user.email;
-
-      if (password && old_password) {
-        const checkOldPassword = await connectionString
-          .query("SELECT * FROM users WHERE password_user = $1", [password])
-          .then(compare(old_password, password));
-
-        if (!checkOldPassword) {
-          throw new AppError("Senha antiga nao confere");
+  
+      const userToUpdate = user.rows[0];
+  
+      if (email !== userToUpdate.email_user) {
+        const userWithUpdatedEmail = await connectionString.query(
+          "SELECT * FROM users WHERE email_user = $1",
+          [email]
+        );
+        if (userWithUpdatedEmail.rows.length > 0) {
+          throw new AppError("Este e-mail já está em uso");
         }
-
-        user.password = await hash(password, 8);
-        console.log(password);
       }
-
+  
+      if (password && old_password) {
+        const isPasswordCorrect = await compare(old_password, userToUpdate.password_user);
+  
+        if (!isPasswordCorrect) {
+          throw new AppError("Senha antiga não confere");
+        }
+  
+        const hashedPassword = await hash(password, 8);
+        userToUpdate.password_user = hashedPassword;
+      }
+  
       await connectionString.query(
         `
           UPDATE users SET
@@ -74,16 +71,12 @@ class UserController {
           email_user = $2,
           password_user = $3,
           update_at = NOW()
-          WHERE id_users = $4`,
-        [
-          user.rows[0].name_user,
-          user.rows[0].email_user,
-          user.password_user,
-          id,
-        ]
+          WHERE id_user = $4
+        `,
+        [name || userToUpdate.name_user, email || userToUpdate.email_user, userToUpdate.password_user, id]
       );
-
-      return response.status(200).json("alterado");
+  
+      return response.status(200).json("Usuário atualizado com sucesso");
     } catch (error) {
       console.error(error);
       response.status(error.statusCode || 500).json({ error: error.message });
