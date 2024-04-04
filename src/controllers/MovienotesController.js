@@ -1,12 +1,33 @@
-const knex = require("../database/knex")
+const knex = require("knex");
 const connectionString = require("../database/postgresql/connect_database");
+const AppError = require("../utils/AppError");
 
-class MoviesNotesController {
-    async index(request, response) {
-        const {user_id} = request.params
+class MovieNotesController {
+  async create(request, response) {
+    const { title, description, rating } = request.body;
+    const { user_id } = request.params;
 
-        const tags = await connectionString.query("SELECT * FROM tags WHERE id_user = $1"[user_id])
+    try {
+      const checkMovieExist = await connectionString.query(
+        "SELECT * FROM movie_notes WHERE title_movie = $1",
+        [title]
+      );
 
-        return response.json(tags.rows);
+      if (checkMovieExist.rows.length > 0) {
+        throw new AppError("Filme ja cadastrado");
+      }
+
+      await connectionString.query(
+        "INSERT INTO movie_notes (title_movie, description, rating, user_id) VALUES ($1, $2, $3, $4)",
+        [title, description, rating, user_id]
+      );
+
+      response.status(201).json("Filme_Nota criado com sucesso");
+    } catch (error) {
+      console.log(error);
+      response.status(error.statusCode || 400).json({ error: error.message });
     }
+  }
 }
+
+module.exports = MovieNotesController;
