@@ -8,7 +8,7 @@ class UserController {
 
     try {
       const checkUserExists = await connectionString.query(
-        "SELECT * FROM users WHERE email_users = $1",
+        "SELECT * FROM users WHERE email_user = $1",
         [email]
       );
       if (checkUserExists.rows.length > 0) {
@@ -17,23 +17,23 @@ class UserController {
 
       const hashedPassword = await hash(password, 8);
       await connectionString.query(
-        "INSERT INTO users (name_users, password_users, email_users) VALEUS ($1, $2, $3)",
-        [name, password, email]
+        "INSERT INTO users (name_user, password_user, email_user) VALUES ($1, $2, $3)",
+        [name, hashedPassword, email]
       );
       response.status(201).json("Usuario cadastrado com sucesso");
     } catch (error) {
       console.log(error);
-      response.status(error.statusCode || 500).json({ error: error.message });
+      response.status(error.statusCode || 400).json({ error: error.message });
     }
   }
 
   async update(request, response) {
-    const { name, email, password, old_password } = request.body;
+    const { name , email, password, old_password } = request.body;
     const { id } = request.params;
 
     try {
       const user = await connectionString.query(
-        "SELECT * FROM users WHERE id_users = $1",
+        "SELECT * FROM users WHERE id_user = $1",
         [id]
       );
       if (user.rows.length === 0) {
@@ -46,10 +46,13 @@ class UserController {
       );
       if (
         userWithUpdatedEmail.rows.length > 0 &&
-        userWithUpdatedEmail.rows[0].id_users != user.rows[0].id_users
+        userWithUpdatedEmail.rows[0].id_user != user.rows[0].id_user
       ) {
         throw new AppError("Este e-mail ja esta em uso");
       }
+
+      user.name = name ?? user.name;
+      user.email = email ?? user.email;
 
       if (password && old_password) {
         const checkOldPassword = await connectionString
@@ -72,9 +75,19 @@ class UserController {
           password_user = $3,
           update_at = NOW()
           WHERE id_users = $4`,
-        [user.rows[0].name_user, user.rows[0].email_user, user.password_user, id]
+        [
+          user.rows[0].name_user,
+          user.rows[0].email_user,
+          user.password_user,
+          id,
+        ]
       );
-    } catch (error) {}
+
+      return response.status(200).json("alterado");
+    } catch (error) {
+      console.error(error);
+      response.status(error.statusCode || 500).json({ error: error.message });
+    }
   }
 }
 
