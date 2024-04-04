@@ -4,7 +4,7 @@ const AppError = require("../utils/AppError");
 
 class MovieNotesController {
   async create(request, response) {
-    const { title, description, rating } = request.body;
+    const { title, description, rating, id_user } = request.body;
     const { user_id } = request.params;
 
     try {
@@ -19,7 +19,7 @@ class MovieNotesController {
 
       await connectionString.query(
         "INSERT INTO movie_notes (title_movie, description, rating, user_id) VALUES ($1, $2, $3, $4)",
-        [title, description, rating, user_id]
+        [title, description, rating, id_user]
       );
 
       response.status(201).json("Filme_Nota criado com sucesso");
